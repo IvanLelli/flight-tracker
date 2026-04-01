@@ -94,33 +94,35 @@ def receive_gpslogger():
 @app.route('/api/traccar', methods=['GET', 'POST'])
 def receive_traccar():
     try:
-        # Traccar Client iPhone usa POST con JSON body
-        # oppure GET con parametri URL — gestiamo entrambi
         if request.method == 'POST':
+            # Traccar Client iPhone manda JSON con struttura:
+            # {"location": {"coords": {"latitude":..., "longitude":..., "altitude":..., "speed":..., "heading":..., "accuracy":...}, ...}, "device_id": "..."}
             data = request.get_json(silent=True) or {}
-            # Traccar manda: {"id":..., "lat":..., "lon":..., "altitude":..., "speed":..., "bearing":..., "accuracy":...}
-            lat  = float(data.get('lat',      data.get('latitude',  request.args.get('lat', 0))))
-            lon  = float(data.get('lon',      data.get('longitude', request.args.get('lon', 0))))
-            alt  = float(data.get('altitude', data.get('alt',       request.args.get('altitude', 0))))
-            spd  = float(data.get('speed',    request.args.get('speed', 0)))
-            brg  = float(data.get('bearing',  request.args.get('bearing', 0)))
-            acc  = float(data.get('accuracy', request.args.get('accuracy', 0)))
-            fid  = str(data.get('id', request.args.get('id', 'iPhone')))
+            coords = data.get('location', {}).get('coords', {})
+            lat = float(coords.get('latitude',  0))
+            lon = float(coords.get('longitude', 0))
+            alt = float(coords.get('altitude',  0))
+            spd = float(coords.get('speed',     0))  # m/s
+            brg = float(coords.get('heading',   0))
+            acc = float(coords.get('accuracy',  0))
+            fid = str(data.get('device_id', 'iPhone'))
+            spd_kmh = spd * 3.6  # m/s → km/h
         else:
-            lat  = float(request.args.get('lat', 0))
-            lon  = float(request.args.get('lon', 0))
-            alt  = float(request.args.get('altitude', 0))
-            spd  = float(request.args.get('speed', 0))
-            brg  = float(request.args.get('bearing', 0))
-            acc  = float(request.args.get('accuracy', 0))
-            fid  = str(request.args.get('id', 'iPhone'))
+            lat = float(request.args.get('lat', 0))
+            lon = float(request.args.get('lon', 0))
+            alt = float(request.args.get('altitude', 0))
+            spd = float(request.args.get('speed', 0))
+            brg = float(request.args.get('bearing', 0))
+            acc = float(request.args.get('accuracy', 0))
+            fid = str(request.args.get('id', 'iPhone'))
+            spd_kmh = spd * 1.852  # nodi → km/h
 
         point = {
             'flight_id':   fid,
             'lat':         lat,
             'lon':         lon,
             'altitude':    alt,
-            'speed_kmh':   spd * 1.852,  # nodi → km/h
+            'speed_kmh':   spd_kmh,
             'bearing':     brg,
             'accuracy':    acc,
             'timestamp':   datetime.utcnow().isoformat(),
@@ -129,7 +131,7 @@ def receive_traccar():
         save_and_emit(point)
         return 'OK', 200
     except Exception as e:
-        print(f"[Traccar error] {e} | args={request.args} | body={request.get_data()}")
+        print(f"[Traccar error] {e} | body={request.get_data()[:200]}")
         return str(e), 400
 
 @app.route('/api/flights', methods=['GET'])
