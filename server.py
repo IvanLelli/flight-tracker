@@ -168,3 +168,12 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
+
+@app.route('/api/debug', methods=['GET', 'POST'])
+def debug():
+    print(f"[DEBUG] method={request.method}")
+    print(f"[DEBUG] args={dict(request.args)}")
+    print(f"[DEBUG] body={request.get_data(as_text=True)}")
+    print(f"[DEBUG] json={request.get_json(silent=True)}")
+    print(f"[DEBUG] form={dict(request.form)}")
+    return 'OK', 200
