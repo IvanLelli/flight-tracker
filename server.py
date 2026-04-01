@@ -82,10 +82,82 @@ def index():
 
 
 # -------------------------------------------------------
-# API: ricezione dati da GPSLogger (GET con parametri URL)
-# Configura GPSLogger con URL:
-# https://flight-tracker-04rm.onrender.com/api/gpslogger?lat=%LAT&lon=%LON&alt=%ALT&speed=%SPD&acc=%ACC
+# API: ricezione dati da Traccar Client (iPhone)
+# Traccar usa il protocollo OsmAnd: GET con parametri
+# Configura Traccar con:
+#   Server: flight-tracker-04rm.onrender.com
+#   Port: 443
+#   Identifier: iphone (o qualsiasi nome vuoi)
 # -------------------------------------------------------
+
+@app.route('/api/traccar', methods=['GET'])
+def receive_traccar():
+    from flask import request as req
+    try:
+        device_id = req.args.get('id', 'iphone')
+        point = {
+            'flight_id':   device_id,
+            'lat':         float(req.args.get('lat', 0)),
+            'lon':         float(req.args.get('lon', 0)),
+            'altitude':    float(req.args.get('altitude', 0)),
+            'speed_kmh':   float(req.args.get('speed', 0)) * 3.6,
+            'bearing':     float(req.args.get('bearing', 0)),
+            'accuracy':    float(req.args.get('accuracy', 0)),
+            'timestamp':   datetime.utcnow().isoformat(),
+            'received_at': datetime.utcnow().isoformat(),
+        }
+        db = get_db()
+        db.execute('''
+            INSERT INTO flight_points
+            (flight_id, lat, lon, altitude, speed_kmh, bearing, accuracy, timestamp, received_at)
+            VALUES (:flight_id,:lat,:lon,:altitude,:speed_kmh,:bearing,:accuracy,:timestamp,:received_at)
+        ''', point)
+        db.commit()
+        socketio.emit('new_point', point)
+        print(f"[Traccar] {device_id} lat={point['lat']:.5f} lon={point['lon']:.5f} alt={point['altitude']:.0f}m")
+        return 'OK', 200
+    except Exception as e:
+        return str(e), 400
+
+
+# -------------------------------------------------------
+# API: ricezione dati da Traccar Client (iPhone/Android)
+# Configura Traccar Client con:
+#   Server: flight-tracker-04rm.onrender.com
+#   Port: 443
+#   Identifier: un nome a tua scelta (es. "miovolo")
+# -------------------------------------------------------
+
+@app.route('/api/traccar', methods=['GET'])
+def receive_traccar():
+    from flask import request as req
+    try:
+        # Traccar manda i dati come parametri GET
+        point = {
+            'flight_id':   str(req.args.get('id', 'traccar')),
+            'lat':         float(req.args.get('lat', 0)),
+            'lon':         float(req.args.get('lon', 0)),
+            'altitude':    float(req.args.get('altitude', 0)),
+            'speed_kmh':   float(req.args.get('speed', 0)) * 1.852,  # nodi → km/h
+            'bearing':     float(req.args.get('bearing', 0)),
+            'accuracy':    float(req.args.get('accuracy', 0)),
+            'timestamp':   datetime.utcnow().isoformat(),
+            'received_at': datetime.utcnow().isoformat(),
+        }
+        db = get_db()
+        db.execute('''
+            INSERT INTO flight_points
+            (flight_id, lat, lon, altitude, speed_kmh, bearing, accuracy, timestamp, received_at)
+            VALUES (:flight_id,:lat,:lon,:altitude,:speed_kmh,:bearing,:accuracy,:timestamp,:received_at)
+        ''', point)
+        db.commit()
+        socketio.emit('new_point', point)
+        print(f"[Traccar] {point['flight_id']} lat={point['lat']:.5f} lon={point['lon']:.5f} alt={point['altitude']:.0f}m")
+        return 'OK', 200
+    except Exception as e:
+        return str(e), 400
+
+
 
 @app.route('/api/gpslogger', methods=['GET'])
 def receive_gpslogger():
