@@ -82,6 +82,41 @@ def index():
 
 
 # -------------------------------------------------------
+# API: ricezione dati da GPSLogger (GET con parametri URL)
+# Configura GPSLogger con URL:
+# https://flight-tracker-04rm.onrender.com/api/gpslogger?lat=%LAT&lon=%LON&alt=%ALT&speed=%SPD&acc=%ACC
+# -------------------------------------------------------
+
+@app.route('/api/gpslogger', methods=['GET'])
+def receive_gpslogger():
+    from flask import request as req
+    try:
+        point = {
+            'flight_id':   'GPSLogger',
+            'lat':         float(req.args.get('lat', 0)),
+            'lon':         float(req.args.get('lon', 0)),
+            'altitude':    float(req.args.get('alt', 0)),
+            'speed_kmh':   float(req.args.get('speed', 0)) * 3.6,
+            'bearing':     float(req.args.get('dir', 0)),
+            'accuracy':    float(req.args.get('acc', 0)),
+            'timestamp':   datetime.utcnow().isoformat(),
+            'received_at': datetime.utcnow().isoformat(),
+        }
+        db = get_db()
+        db.execute('''
+            INSERT INTO flight_points
+            (flight_id, lat, lon, altitude, speed_kmh, bearing, accuracy, timestamp, received_at)
+            VALUES (:flight_id,:lat,:lon,:altitude,:speed_kmh,:bearing,:accuracy,:timestamp,:received_at)
+        ''', point)
+        db.commit()
+        socketio.emit('new_point', point)
+        print(f"[GPSLogger] lat={point['lat']:.5f} lon={point['lon']:.5f} alt={point['altitude']:.0f}m")
+        return 'OK', 200
+    except Exception as e:
+        return str(e), 400
+
+
+# -------------------------------------------------------
 # API: ricezione dati dall'app
 # -------------------------------------------------------
 
