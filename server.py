@@ -91,7 +91,7 @@ def receive_gpslogger():
     except Exception as e:
         return str(e), 400
 
-@app.route('/api/traccar', methods=['GET'])
+@app.route('/api/traccar', methods=['GET', 'POST'])
 def receive_traccar():
     try:
         point = {
