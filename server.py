@@ -10,7 +10,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cambia-questa-chiave-segreta-2024'
 CORS(app, origins="*")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
-DB_PATH = os.path.join(os.path.dirname(__file__), 'flights.db')
+
+# Su Render il piano free non ha disco persistente — usiamo /tmp che è sempre scrivibile
+DB_PATH = '/tmp/flights.db'
 
 def get_db():
     if 'db' not in g:
@@ -50,7 +52,12 @@ def index():
 <body style="font-family:sans-serif;padding:40px;background:#0f1117;color:#e2e8f0">
 <h1>&#9992; Flight Tracker Server</h1>
 <p style="color:#22c55e;font-size:20px">&#9679; Server attivo!</p>
-<p style="color:#64748b">Endpoint: /api/data (Flutter) &nbsp;|&nbsp; /api/gpslogger (Android) &nbsp;|&nbsp; /api/traccar (iPhone)</p>
+<p style="color:#64748b">Endpoint disponibili:<br>
+POST /api/data &nbsp;&nbsp;&nbsp;&nbsp;(app Flutter)<br>
+GET &nbsp;/api/gpslogger &nbsp;(GPSLogger Android)<br>
+GET &nbsp;/api/traccar &nbsp;&nbsp;(Traccar Client iPhone)<br>
+GET &nbsp;/api/flights &nbsp;&nbsp;(lista voli)
+</p>
 </body></html>'''
 
 @app.route('/api/data', methods=['POST'])
@@ -129,7 +136,10 @@ def on_connect(): print("[WS] Browser connesso")
 @socketio.on('disconnect')
 def on_disconnect(): print("[WS] Browser disconnesso")
 
-if __name__ == '__main__':
+# Inizializza il DB all'avvio dell'app (necessario con gunicorn)
+with app.app_context():
     init_db()
+
+if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
