@@ -79,7 +79,7 @@ def receive_data():
 def receive_gpslogger():
     try:
         point = {
-            'flight_id': 'GPSLogger',
+            'flight_id': str(request.args.get('id', 'GPSLogger')),
             'lat': float(request.args.get('lat', 0)), 'lon': float(request.args.get('lon', 0)),
             'altitude': float(request.args.get('alt', 0)),
             'speed_kmh': float(request.args.get('speed', 0)) * 3.6,
