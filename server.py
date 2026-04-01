@@ -16,7 +16,7 @@ Oppure con gunicorn (produzione):
 import sqlite3
 import os
 from datetime import datetime
-from flask import Flask, request, jsonify, g, send_from_directory
+from flask import Flask, request, jsonify, g
 from flask_socketio import SocketIO
 from flask_cors import CORS
 
@@ -26,7 +26,6 @@ CORS(app, origins="*")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'flights.db')
-DASHBOARD_DIR = os.path.join(os.path.dirname(__file__), '..', 'dashboard')
 
 # -------------------------------------------------------
 # Database
@@ -73,7 +72,13 @@ def init_db():
 
 @app.route('/')
 def index():
-    return send_from_directory(DASHBOARD_DIR, 'index.html')
+    return '''<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Flight Tracker</title></head>
+<body style="font-family:sans-serif;padding:40px;background:#0f1117;color:#e2e8f0">
+<h1>&#9992; Flight Tracker Server</h1>
+<p style="color:#22c55e;font-size:20px">&#9679; Server attivo e funzionante!</p>
+<p>Usa la dashboard sul tuo PC o hosting per vedere la mappa.</p>
+</body></html>'''
 
 
 # -------------------------------------------------------
@@ -201,4 +206,4 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print(f"[SERVER] In ascolto su http://0.0.0.0:{port}")
     print(f"[SERVER] Dashboard: http://0.0.0.0:{port}/")
-    socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=port, debug=False)
